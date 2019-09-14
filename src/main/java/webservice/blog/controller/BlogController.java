@@ -1,25 +1,22 @@
 package webservice.blog.controller;
-
-import excepition.BlogNotFoundException;
-import org.hibernate.mapping.Collection;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
 import webservice.blog.blog.Blog;
 import webservice.blog.repository.BlogRepository;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @RestController
 @RequestMapping(path = "/blog")
 public class BlogController {
 
     private final BlogRepository blogRepository;
+
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
 
     @Autowired
     public BlogController(BlogRepository blogRepository) {
@@ -28,6 +25,7 @@ public class BlogController {
 
 
     @GetMapping(path = "/all")
+    @ResponseBody
     List<Blog> getAllBlog() {
         // This returns a JSON or XML with the users
 
@@ -45,13 +43,37 @@ public class BlogController {
 
 
     @GetMapping(path = "/{id}")
+    @ResponseBody
     Blog one(@PathVariable Integer id) {
 
-        return blogRepository.findById(id).orElseThrow(() -> new BlogNotFoundException(id));
+
+        Boolean exist = redisTemplate.hasKey(id.toString());
+
+
+        if (exist != null && exist) {
+
+
+
+            return (Blog) redisTemplate.opsForValue().get(id.toString());
+
+
+        } else {
+
+            ValueOperations<String, Object> operations = redisTemplate.opsForValue();
+
+            Blog blog = blogRepository.findById(id).isPresent() ? blogRepository.findById(id).get() : null;
+
+
+            operations.set(id.toString(), blog);
+
+            return blog;
+
+        }
 
     }
 
     @GetMapping(path = "/recent")
+    @ResponseBody
     List<Blog> getRecentBlog() {
         // This returns a JSON or XML with the users
 

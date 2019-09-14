@@ -5,7 +5,7 @@ import java.io.Serializable;
 
 
 @Entity
-@Table(name = "level")
+@Table(name = "Level")
 
 public class Level implements Serializable {
 
